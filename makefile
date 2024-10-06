@@ -11,4 +11,13 @@ server: main.cpp  ./timer/lst_timer.cpp ./http/http_conn.cpp ./log/log.cpp ./CGI
 	$(CXX) -o server  $^ $(CXXFLAGS) -lpthread -lmysqlclient
 
 clean:
-	rm  -r server
+	rm -f *Log
+	rm  -rf server
+
+rebuild:clean server
+
+run:rebuild
+	./server
+
+valgrind:rebuild
+	valgrind --tool=memcheck --log-file=valgrindLog.log --leak-check=yes ./server

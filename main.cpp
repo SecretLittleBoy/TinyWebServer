@@ -2,9 +2,9 @@
 
 int main(int argc, char* argv[]) {
     // 需要修改的数据库信息,登录名,密码,库名
-    constexpr string user = "root";
-    constexpr string passwd = "root";
-    constexpr string databasename = "qgydb";
+    const string user = "root";
+    const string passwd = "88888888";
+    const string databasename = "webserver";
 
     // 命令行解析
     Config config;

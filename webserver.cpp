@@ -78,7 +78,7 @@ void WebServer::log_write() {
 void WebServer::sql_pool() {
     // 初始化数据库连接池
     m_connPool = connection_pool::GetInstance();
-    m_connPool->init("localhost", m_user, m_passWord, m_databaseName, 3306, m_sql_num, m_close_log);
+    m_connPool->init("host.docker.internal", m_user, m_passWord, m_databaseName, 3306, m_sql_num, m_close_log);
 
     // 初始化数据库读取表
     users->initmysql_result(m_connPool);
@@ -316,7 +316,12 @@ void WebServer::dealwithwrite(int sockfd) {
 void WebServer::eventLoop() {
     bool timeout = false;
     bool stop_server = false;
-
+#if DebugMemoryLeak == 1
+    thread([&stop_server] {
+        this_thread::sleep_for(chrono::seconds(3));
+        stop_server = true;
+    }).detach();
+#endif
     while (!stop_server) {
         int number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, -1);
         if (number < 0 && errno != EINTR) {
