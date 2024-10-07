@@ -43,25 +43,25 @@ void WebServer::init(int port, string user, string passWord, string databaseName
 }
 
 void WebServer::trig_mode() {
-    // LT + LT
-    if (0 == m_TRIGMode) {
-        m_LISTENTrigmode = 0;
-        m_CONNTrigmode = 0;
-    }
-    // LT + ET
-    else if (1 == m_TRIGMode) {
-        m_LISTENTrigmode = 0;
-        m_CONNTrigmode = 1;
-    }
-    // ET + LT
-    else if (2 == m_TRIGMode) {
-        m_LISTENTrigmode = 1;
-        m_CONNTrigmode = 0;
-    }
-    // ET + ET
-    else if (3 == m_TRIGMode) {
-        m_LISTENTrigmode = 1;
-        m_CONNTrigmode = 1;
+    switch (m_TRIGMode) {
+        case 0: // LT + LT
+            m_LISTENTrigmode = 0;
+            m_CONNTrigmode = 0;
+            break;
+        case 1: // LT + ET
+            m_LISTENTrigmode = 0;
+            m_CONNTrigmode = 1;
+            break;
+        case 2: // ET + LT
+            m_LISTENTrigmode = 1;
+            m_CONNTrigmode = 0;
+            break;
+        case 3: // ET + ET
+            m_LISTENTrigmode = 1;
+            m_CONNTrigmode = 1;
+            break;
+        default:
+            break;
     }
 }
 
@@ -103,7 +103,6 @@ void WebServer::eventListen() {
         setsockopt(m_listenfd, SOL_SOCKET, SO_LINGER, &tmp, sizeof(tmp));
     }
 
-    int ret = 0;
     struct sockaddr_in address;
     bzero(&address, sizeof(address));
     address.sin_family = AF_INET;
@@ -112,23 +111,19 @@ void WebServer::eventListen() {
 
     int flag = 1;
     setsockopt(m_listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
-    ret = bind(m_listenfd, (struct sockaddr*)&address, sizeof(address));
-    assert(ret >= 0);
-    ret = listen(m_listenfd, 5);
-    assert(ret >= 0);
+    assert(bind(m_listenfd, (struct sockaddr*)&address, sizeof(address)) >= 0);
+    assert(listen(m_listenfd, 5) >= 0);
 
     utils.init(TIMESLOT);
 
     // epoll创建内核事件表
-    epoll_event events[MAX_EVENT_NUMBER];
     m_epollfd = epoll_create(5);
     assert(m_epollfd != -1);
 
     utils.addfd(m_epollfd, m_listenfd, false, m_LISTENTrigmode);
     http_conn::m_epollfd = m_epollfd;
 
-    ret = socketpair(PF_UNIX, SOCK_STREAM, 0, m_pipefd);
-    assert(ret != -1);
+    assert(socketpair(PF_UNIX, SOCK_STREAM, 0, m_pipefd) != -1);
     utils.setnonblocking(m_pipefd[1]);
     utils.addfd(m_epollfd, m_pipefd[0], false, 0);
 
@@ -181,7 +176,7 @@ void WebServer::deal_timer(util_timer* timer, int sockfd) {
 bool WebServer::dealclientdata() {
     struct sockaddr_in client_address;
     socklen_t client_addrlength = sizeof(client_address);
-    if (0 == m_LISTENTrigmode) {
+    if (0 == m_LISTENTrigmode) { // LT
         int connfd = accept(m_listenfd, (struct sockaddr*)&client_address, &client_addrlength);
         if (connfd < 0) {
             LOG_ERROR("%s:errno is:%d", "accept error", errno);
@@ -193,9 +188,7 @@ bool WebServer::dealclientdata() {
             return false;
         }
         timer(connfd, client_address);
-    }
-
-    else {
+    } else {
         while (1) {
             int connfd = accept(m_listenfd, (struct sockaddr*)&client_address, &client_addrlength);
             if (connfd < 0) {
@@ -219,9 +212,7 @@ bool WebServer::dealwithsignal(bool& timeout, bool& stop_server) {
     int sig;
     char signals[1024];
     ret = recv(m_pipefd[0], signals, sizeof(signals), 0);
-    if (ret == -1) {
-        return false;
-    } else if (ret == 0) {
+    if (-1 == ret || 0 == ret) {
         return false;
     } else {
         for (int i = 0; i < ret; ++i) {
@@ -243,8 +234,7 @@ bool WebServer::dealwithsignal(bool& timeout, bool& stop_server) {
 void WebServer::dealwithread(int sockfd) {
     util_timer* timer = users_timer[sockfd].timer;
 
-    // reactor
-    if (1 == m_actormodel) {
+    if (1 == m_actormodel) { // reactor
         if (timer) {
             adjust_timer(timer);
         }
@@ -262,8 +252,7 @@ void WebServer::dealwithread(int sockfd) {
                 break;
             }
         }
-    } else {
-        // proactor
+    } else { // proactor
         if (users[sockfd].read_once()) {
             LOG_INFO("deal with the client(%s)", inet_ntoa(users[sockfd].get_address()->sin_addr));
 
@@ -281,8 +270,7 @@ void WebServer::dealwithread(int sockfd) {
 
 void WebServer::dealwithwrite(int sockfd) {
     util_timer* timer = users_timer[sockfd].timer;
-    // reactor
-    if (1 == m_actormodel) {
+    if (1 == m_actormodel) { // reactor
         if (timer) {
             adjust_timer(timer);
         }
@@ -299,8 +287,7 @@ void WebServer::dealwithwrite(int sockfd) {
                 break;
             }
         }
-    } else {
-        // proactor
+    } else { // proactor
         if (users[sockfd].write()) {
             LOG_INFO("send data to the client(%s)", inet_ntoa(users[sockfd].get_address()->sin_addr));
 
@@ -318,7 +305,7 @@ void WebServer::eventLoop() {
     bool stop_server = false;
 #if DebugMemoryLeak == 1
     thread([&stop_server] {
-        this_thread::sleep_for(chrono::seconds(3));
+        this_thread::sleep_for(chrono::seconds(5));
         stop_server = true;
     }).detach();
 #endif
@@ -357,10 +344,9 @@ void WebServer::eventLoop() {
         }
         if (timeout) {
             utils.timer_handler();
-
             LOG_INFO("%s", "timer tick");
-
             timeout = false;
         }
     }
+    std::cout << "server close" << std::endl;
 }

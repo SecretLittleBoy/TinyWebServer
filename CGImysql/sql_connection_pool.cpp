@@ -40,7 +40,7 @@ void connection_pool::init(string url, string User, string PassWord, string DBNa
         con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
 
         if (con == NULL) {
-            LOG_ERROR("MySQL Real Connet Error");
+            LOG_ERROR("MySQL Real Connect Error");
             exit(1);
         }
         connList.push_back(con);
@@ -95,8 +95,7 @@ void connection_pool::DestroyPool() {
     lock.lock();
 
     if (connList.size() > 0) {
-        list<MYSQL*>::iterator it;
-        for (it = connList.begin(); it != connList.end(); ++it) {
+        for (auto it = connList.begin(); it != connList.end(); ++it) {
             MYSQL* con = *it;
             mysql_close(con);
         }

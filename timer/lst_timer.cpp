@@ -125,8 +125,7 @@ void Utils::init(int timeslot) {
 // 对文件描述符设置非阻塞
 int Utils::setnonblocking(int fd) {
     int old_option = fcntl(fd, F_GETFL);
-    int new_option = old_option | O_NONBLOCK;
-    fcntl(fd, F_SETFL, new_option);
+    fcntl(fd, F_SETFL, old_option | O_NONBLOCK);
     return old_option;
 }
 
@@ -150,8 +149,7 @@ void Utils::addfd(int epollfd, int fd, bool one_shot, int TRIGMode) {
 void Utils::sig_handler(int sig) {
     // 为保证函数的可重入性，保留原来的errno
     int save_errno = errno;
-    int msg = sig;
-    send(u_pipefd[1], (char*)&msg, 1, 0);
+    send(u_pipefd[1], (char*)&sig, 1, 0);
     errno = save_errno;
 }
 

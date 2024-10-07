@@ -31,10 +31,10 @@ void http_conn::initmysql_result(connection_pool* connPool) {
     MYSQL_RES* result = mysql_store_result(mysql);
 
     // 返回结果集中的列数
-    int num_fields = mysql_num_fields(result);
+    // int num_fields = mysql_num_fields(result);
 
     // 返回所有字段结构的数组
-    MYSQL_FIELD* fields = mysql_fetch_fields(result);
+    // MYSQL_FIELD* fields = mysql_fetch_fields(result);
 
     // 从结果集中获取下一行，将对应的用户名和密码，存入map中
     while (MYSQL_ROW row = mysql_fetch_row(result)) {
@@ -42,6 +42,8 @@ void http_conn::initmysql_result(connection_pool* connPool) {
         string temp2(row[1]);
         users[temp1] = temp2;
     }
+
+    mysql_free_result(result);
 }
 
 // 对文件描述符设置非阻塞
@@ -183,19 +185,15 @@ bool http_conn::read_once() {
     }
     int bytes_read = 0;
 
-    // LT读取数据
-    if (0 == m_TRIGMode) {
+    if (0 == m_TRIGMode) { // LT读取数据
         bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
         m_read_idx += bytes_read;
 
         if (bytes_read <= 0) {
             return false;
         }
-
         return true;
-    }
-    // ET读数据
-    else {
+    } else { // ET读数据
         while (true) {
             bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
             if (bytes_read == -1) {

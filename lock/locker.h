@@ -65,16 +65,14 @@ public:
         pthread_cond_destroy(&m_cond);
     }
     bool wait(pthread_mutex_t* m_mutex) {
-        int ret = 0;
         // pthread_mutex_lock(&m_mutex);
-        ret = pthread_cond_wait(&m_cond, m_mutex);
+        int ret = pthread_cond_wait(&m_cond, m_mutex);
         // pthread_mutex_unlock(&m_mutex);
         return ret == 0;
     }
     bool timewait(pthread_mutex_t* m_mutex, struct timespec t) {
-        int ret = 0;
         // pthread_mutex_lock(&m_mutex);
-        ret = pthread_cond_timedwait(&m_cond, m_mutex, &t);
+        int ret = pthread_cond_timedwait(&m_cond, m_mutex, &t);
         // pthread_mutex_unlock(&m_mutex);
         return ret == 0;
     }
