@@ -105,15 +105,15 @@ void threadpool<T>::run() {
                     connectionRAII mysqlcon(&request->mysql, m_connPool);
                     request->process();
                 } else {
-                    request->improv = 1;
                     request->timer_flag = 1;
+                    request->improv = 1;
                 }
             } else { // 写
                 if (request->write()) {
                     request->improv = 1;
                 } else {
-                    request->improv = 1;
                     request->timer_flag = 1;
+                    request->improv = 1;
                 }
             }
         } else { // Proactor
